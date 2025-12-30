@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real-Time Chat</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    #chat-container {
+      width: 90%;
+      max-width: 1200px;
+      height: 90vh;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #header {
+      background: #007bff;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    #messages {
+      list-style: none;
+      margin: 0;
+      padding: 20px;
+      flex-grow: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message-item {
+      padding: 10px 15px;
+      border-radius: 20px;
+      max-width: 70%;
+      word-wrap: break-word;
+      font-size: 16px;
+    }
+
+    .my-message {
+      background: #007bff;
+      color: white;
+      align-self: flex-end;
+    }
+
+    .other-message {
+      background: #e9ecef;
+      color: black;
+      align-self: flex-start;
+    }
+
+    .username {
+      font-size: 12px;
+      color: #555;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    #form {
+      display: flex;
+      padding: 15px;
+      border-top: 1px solid #ddd;
+    }
+
+    #input {
+      flex-grow: 1;
+      border: 1px solid #ddd;
+      padding: 12px;
+      border-radius: 30px;
+      outline: none;
+      font-size: 16px;
+    }
+
+    #send-btn {
+      margin-left: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    #send-btn:hover {
+      background: #0056b3;
+    }
+
+    @media (max-width: 600px) {
+      #chat-container {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .message-item {
+        max-width: 85%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="chat-container">
+    <div id="header"><%= user?.username || 'Guest' %></div>
+
+    <ul id="messages">
+      <% (messages || []).forEach(function(msg) { %>
+        <li class="message-item other-message">
+          <span class="username"><%= msg.username %></span>
+          <%= msg.message %>
+        </li>
+      <% }); %>
+    </ul>
+
+    <form id="form">
+      <input
+        id="input"
+        autocomplete="off"
+        placeholder="Type a message..."
+        required
+      />
+      <button id="send-btn" type="submit">Send</button>
+    </form>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const username = "<%= user?.username || 'Guest' %>";
+
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const messages = document.getElementById('messages');
+
+    messages.scrollTop = messages.scrollHeight;
+
+    // Send message
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      if (!input.value.trim()) return;
+
+      socket.emit('chat message', {
+        username,
+        message: input.value.trim()
+      });
+
+      input.value = '';
+    });
+
+    // Receive message
+    socket.on('chat message', function (data) {
+      const item = document.createElement('li');
+      item.classList.add('message-item');
+
+      if (data.username === username) {
+        item.classList.add('my-message');
+        item.textContent = data.message;
+      } else {
+        item.classList.add('other-message');
+
+        const span = document.createElement('span');
+        span.className = 'username';
+        span.textContent = data.username;
+
+        item.appendChild(span);
+        item.append(document.createTextNode(data.message));
+      }
+
+      messages.appendChild(item);
+      messages.scrollTop = messages.scrollHeight;
+    });
+  </script>
+
+</body>
+</html>
